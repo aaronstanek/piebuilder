@@ -7,6 +7,22 @@ let project = new piebuilder.Project()
 project.globalFileDependency('package.json')
     .globalFileDependency('package-lock.json')
     .globalFileDependency('build.js')
+    .beforeTask(
+        ()=>{
+            if (!fs.existsSync('out')) {
+                fs.mkdirSync('out')
+                if (fs.existsSync('out')) {
+                    return 0;
+                }
+                else {
+                    return 1;
+                }
+            }
+            else {
+                return 0;
+            }
+        }
+        )
 
 let intermediateTarget = project.target('piebuilderSource.js')
     .fileDependency('src/piebuilderSource.ts')
@@ -23,22 +39,6 @@ else {
 
 project.target('out/piebuilder.js')
     .fileDependency('piebuilderSource.js')
-    .task(
-        ()=>{
-            if (!fs.existsSync('out')) {
-                fs.mkdirSync('out')
-                if (fs.existsSync('out')) {
-                    return 0;
-                }
-                else {
-                    return 1;
-                }
-            }
-            else {
-                return 0;
-            }
-        }
-    )
     .task('npx minify piebuilderSource.js > out/piebuilder.js')
 
 let duration = project.build('out/piebuilder.js')
