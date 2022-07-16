@@ -102,3 +102,8 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Custom
+piebuilder_cache/
+out/
+piebuilderSource.js
