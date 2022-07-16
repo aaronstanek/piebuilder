@@ -24,18 +24,9 @@ project.globalFileDependency('package.json')
         }
         )
 
-let intermediateTarget = project.target('piebuilderSource.js')
+project.target('piebuilderSource.js')
     .fileDependency('src/piebuilderSource.ts')
     .task('npx tsc src/piebuilderSource.ts --outDir . --module node16 --strict true --newLine lf')
-
-if (os.platform() === 'win32') {
-    // Running on a Windows system
-    intermediateTarget.fileDependency('initialize.bat')
-}
-else {
-    // Running on a non-Windows system
-    intermediateTarget.fileDependency('initialize.sh')
-}
 
 project.target('out/piebuilder.js')
     .fileDependency('piebuilderSource.js')
