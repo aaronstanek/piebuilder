@@ -1,2 +1,2 @@
 npm install
-npx tsc src/piebuilderSource.ts --outDir . --module node16 --strict true --newLine lf
+npx tsc src/piebuilder.ts --outDir ./out --module commonjs --strict true --newLine lf
