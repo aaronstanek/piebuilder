@@ -24,10 +24,20 @@ project.globalFileDependency('package.json')
         }
         )
 
+project.target('out/package.json')
+    .fileDependency('src/package.json')
+    .task(
+        ()=>{
+            fs.copyFileSync('src/package.json','out/package.json')
+            return 0;
+        }
+    )
+
 project.target('out/piebuilder.js')
     .fileDependency('src/piebuilder.ts')
     .task('npx tsc src/piebuilder.ts --outDir ./out --module commonjs --strict true --newLine lf')
 
-let duration = project.build('out/piebuilder.js')
+let duration = project.build('out/package.json')
+    + project.build('out/piebuilder.js')
 
 console.log('built sucessfully in ' + duration + ' milliseconds')
