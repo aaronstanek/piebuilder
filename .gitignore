@@ -106,4 +106,3 @@ dist
 # Custom
 piebuilder_cache/
 out/
-piebuilderSource.js
