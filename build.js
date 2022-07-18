@@ -1,6 +1,6 @@
 var os = require('os')
 var fs = require('fs')
-var piebuilder = require('./out/piebuilder.js')
+var piebuilder = require('piebuilder')
 
 let project = new piebuilder.Project()
 
