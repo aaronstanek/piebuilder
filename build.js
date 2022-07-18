@@ -39,24 +39,23 @@ function compileTS(basename) {
     }
 }
 
-function typescriptTarget(project,basename) {
+function typescriptTarget(project,endTarget,basename) {
+    endTarget.fileDependency('out/' + basename + '.js')
     project.target('out/'+basename+'.js')
         .fileDependency('src/'+basename+'.ts')
         .task(compileTS(basename))
 }
 
-typescriptTarget(project,'piebuilder')
-typescriptTarget(project,'cache')
-typescriptTarget(project,'doTask')
-typescriptTarget(project,'hash')
-typescriptTarget(project,'index')
-typescriptTarget(project,'Source')
-typescriptTarget(project,'Target')
-
-project.target('.gitignore')
+let endTarget = project.target('.gitignore')
     .fileDependency('out/package.json')
-    .fileDependency('out/piebuilder.js')
-    .fileDependency('out/index.js')
+
+typescriptTarget(project,endTarget,'cache')
+typescriptTarget(project,endTarget,'doTask')
+typescriptTarget(project,endTarget,'hash')
+typescriptTarget(project,endTarget,'index')
+typescriptTarget(project,endTarget,'Project')
+typescriptTarget(project,endTarget,'Source')
+typescriptTarget(project,endTarget,'Target')
 
 let duration = project.build('.gitignore')
 

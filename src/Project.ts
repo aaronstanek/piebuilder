@@ -1,11 +1,4 @@
-// imports
-
-import * as crypto from 'crypto';
-import * as fs from 'fs';
 import * as pathlib from 'path';
-import * as child_process from 'child_process';
-
-import * as hash from './hash';
 import * as cache from './cache';
 import * as doTask from './doTask';
 import * as Source from './Source';

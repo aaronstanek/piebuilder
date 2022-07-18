@@ -1,5 +1,5 @@
-import * as piebuilder from './piebuilder';
+import * as Project from './Project';
 
 module.exports = {
-    'Project': piebuilder.Project
+    'Project': Project.Project
 }

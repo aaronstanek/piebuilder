@@ -3,7 +3,7 @@ import * as hash from './hash';
 import * as cache from './cache';
 import * as doTask from './doTask';
 import * as Source from './Source';
-import * as piebuilder from './piebuilder';
+import * as Project from './Project';
 
 interface RawDependencyDictionaryType {
     [index: string]: boolean;
@@ -145,7 +145,7 @@ export class Target {
         }
         return hash.documentToHash(document);
     }
-    _hardBuild(project: piebuilder.Project, buildInfo: cache.BuildInfoType): void {
+    _hardBuild(project: Project.Project, buildInfo: cache.BuildInfoType): void {
         for (let i = 0; i < this._tasks.length; ++i) {
             doTask.doTask(this._tasks[i]);
         }
@@ -175,7 +175,7 @@ export class Target {
         }
         return hash.documentToHash(document);
     }
-    _build(project: piebuilder.Project, buildInfo: cache.BuildInfoType): void {
+    _build(project: Project.Project, buildInfo: cache.BuildInfoType): void {
         if (this._buildHash.length) return;
         this._computeExactDependencies(project._paths);
         // this._exactDependencies is set
