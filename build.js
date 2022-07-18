@@ -43,7 +43,7 @@ function typescriptTarget(project,endTarget,basename) {
         .task(compileTS(basename))
 }
 
-let endTarget = project.target('.gitignore')
+let endTarget = project.target(piebuilder.makeVirtualPath('endTarget'))
     .fileDependency('out/package.json')
 
 typescriptTarget(project,endTarget,'cache')
@@ -55,6 +55,6 @@ typescriptTarget(project,endTarget,'Source')
 typescriptTarget(project,endTarget,'Target')
 typescriptTarget(project,endTarget,'virtualPath')
 
-let duration = project.build('.gitignore')
+let duration = project.build(piebuilder.makeVirtualPath('endTarget'))
 
 console.log('built sucessfully in ' + duration + ' milliseconds')
