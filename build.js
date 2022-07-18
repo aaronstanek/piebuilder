@@ -37,7 +37,12 @@ project.target('out/piebuilder.js')
     .fileDependency('src/piebuilder.ts')
     .task('npx tsc src/piebuilder.ts --outDir ./out --module commonjs --strict true --newLine lf')
 
+project.target('out/index.js')
+    .fileDependency('src/index.ts')
+    .task('npx tsc src/index.ts --outDir ./out --module commonjs --strict true --newLine lf')
+
 let duration = project.build('out/package.json')
     + project.build('out/piebuilder.js')
+    + project.build('out/index.js')
 
 console.log('built sucessfully in ' + duration + ' milliseconds')
