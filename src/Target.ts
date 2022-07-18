@@ -2,6 +2,7 @@ import * as pathlib from 'path';
 import * as hash from './hash';
 import * as cache from './cache';
 import * as doTask from './doTask';
+import * as virtualPath from './virtualPath';
 import * as Source from './Source';
 import * as Project from './Project';
 
@@ -153,15 +154,28 @@ export class Target {
         // need to update previous and recipes
         for (let i = 0; i < this._paths.length; ++i) {
             let targetPath: string = this._paths[i];
-            let targetHash: string = hash.fileToHash(this._paths[i]);
-            if (targetHash.length < 1) {
-                // the file was not created
-                throw 'Target was not created by tasks: ' + targetPath;
+            if (virtualPath.pathIsVirtual(targetPath)) {
+                // this is a virtual file
+                // there is nothing on the hard drive
+                let recipeHash: string = this._computeRecipeHash(targetPath);
+                // we can say that the contents of the virtual file
+                // are it's recipe document
+                // that way its recipe hash is the same as its content hash
+                buildInfo.previous[targetPath] = [recipeHash,buildInfo.meta.build_count];
+                buildInfo.recipes[recipeHash] = [recipeHash,buildInfo.meta.build_count];
             }
-            cache.copyFileIntoCache(project._cachePath,targetPath,targetHash);
-            buildInfo.previous[targetPath] = [targetHash,buildInfo.meta.build_count];
-            let recipeHash: string = this._computeRecipeHash(targetPath);
-            buildInfo.recipes[recipeHash] = [targetHash,buildInfo.meta.build_count];
+            else {
+                // this is a real file which actually exists on the hard drive
+                let targetHash: string = hash.fileToHash(this._paths[i]);
+                if (targetHash.length < 1) {
+                    // the file was not created
+                    throw 'Target was not created by tasks: ' + targetPath;
+                }
+                cache.copyFileIntoCache(project._cachePath,targetPath,targetHash);
+                buildInfo.previous[targetPath] = [targetHash,buildInfo.meta.build_count];
+                let recipeHash: string = this._computeRecipeHash(targetPath);
+                buildInfo.recipes[recipeHash] = [targetHash,buildInfo.meta.build_count];
+            }
         }
     }
     _computeBuildHash(previous: cache.BuildInfoPreviousType): string {
@@ -216,7 +230,9 @@ export class Target {
                         if (buildInfo.previous[targetPath][0] === targetHash) {
                             // the file is already built in place
                             // we don't have to do anything
-                            if (project._cautionLevel === 1) {
+                            if (project._cautionLevel === 1 || virtualPath.pathIsVirtual(targetPath)) {
+                                // if the file is virtual then it cannot have changed since
+                                // the last build
                                 buildInfo.previous[targetPath][1] = buildInfo.meta.build_count;
                                 continue;
                             }
@@ -238,7 +254,14 @@ export class Target {
                     }
                     // either the file did not exist previously
                     // or its hash is wrong
-                    if (cache.blobExists(project._cachePath,targetHash)) {
+                    if (virtualPath.pathIsVirtual(targetPath)) {
+                        // we will never have a blob available for a virtual file
+                        // so we shouldn't even look
+                        // because looking takes extra time
+                        hardBuildRequired = true;
+                        break
+                    }
+                    else if (cache.blobExists(project._cachePath,targetHash)) {
                         blobCopyList.push([targetPath,targetHash]);
                     }
                     else {
