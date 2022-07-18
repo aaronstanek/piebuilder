@@ -51,6 +51,7 @@ typescriptTarget(project,'doTask')
 typescriptTarget(project,'hash')
 typescriptTarget(project,'index')
 typescriptTarget(project,'Source')
+typescriptTarget(project,'Target')
 
 project.target('.gitignore')
     .fileDependency('out/package.json')
