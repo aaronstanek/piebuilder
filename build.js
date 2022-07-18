@@ -4,10 +4,7 @@ var piebuilder = require('piebuilder')
 
 let project = new piebuilder.Project()
 
-project.globalFileDependency('package.json')
-    .globalFileDependency('package-lock.json')
-    .globalFileDependency('build.js')
-    .beforeTask(
+project.beforeTask(
         ()=>{
             if (!fs.existsSync('out')) {
                 fs.mkdirSync('out')
@@ -56,6 +53,7 @@ typescriptTarget(project,endTarget,'index')
 typescriptTarget(project,endTarget,'Project')
 typescriptTarget(project,endTarget,'Source')
 typescriptTarget(project,endTarget,'Target')
+typescriptTarget(project,endTarget,'virtualPath')
 
 let duration = project.build('.gitignore')
 
