@@ -47,6 +47,7 @@ function typescriptTarget(project,basename) {
 
 typescriptTarget(project,'piebuilder')
 typescriptTarget(project,'cache')
+typescriptTarget(project,'doTask')
 typescriptTarget(project,'hash')
 typescriptTarget(project,'index')
 

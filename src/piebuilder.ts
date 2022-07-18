@@ -7,44 +7,7 @@ import * as child_process from 'child_process';
 
 import * as hash from './hash';
 import * as cache from './cache';
-
-
-type TaskItemType = string | Function;
-
-function callShell(command: string): number | null {
-    return child_process.spawnSync(
-        command,
-        {
-            shell:true,
-            stdio:'inherit'
-        }
-        ).status;
-}
-
-function doTask(taskitem: TaskItemType): void {
-    let finalResult: number | null;
-    if (typeof taskitem === 'string') {
-        finalResult = callShell(taskitem);
-    }
-    else {
-        let intermediateResult: any = taskitem();
-        if (typeof intermediateResult === 'number' || intermediateResult === null) {
-            finalResult = intermediateResult;
-        }
-        else if (typeof intermediateResult === 'string') {
-            finalResult = callShell(intermediateResult);
-        }
-        else {
-            throw 'Task returned an unexpected type: ' + (typeof intermediateResult);
-        }
-    }
-    if (finalResult === null) {
-        throw 'Task returned null exit code';
-    }
-    if (finalResult !== 0) {
-        throw 'Task returned nonzero exit code: ' + finalResult;
-    }
-}
+import * as doTask from './doTask';
 
 interface RawDependencyDictionaryType {
     [index: string]: boolean;
@@ -81,7 +44,7 @@ class Source {
 
 class Target {
     _paths: string[];
-    _tasks: TaskItemType[];
+    _tasks: doTask.TaskItemType[];
     _rawDependencies: RawDependencyDictionaryType;
     _exactDependencies: PathsDictionaryType;
     _buildHash: string;
@@ -211,7 +174,7 @@ class Target {
     }
     _hardBuild(project: Project, buildInfo: cache.BuildInfoType): void {
         for (let i = 0; i < this._tasks.length; ++i) {
-            doTask(this._tasks[i]);
+            doTask.doTask(this._tasks[i]);
         }
         // need to check that we actually did something
         // need to update previous and recipes
@@ -344,8 +307,8 @@ export class Project {
     _paths: PathsDictionaryType;
     _globalFileDependencies: string[];
     _globalDirectoryDependencies: string[];
-    _beforeTasks: TaskItemType[];
-    _afterTasks: TaskItemType[];
+    _beforeTasks: doTask.TaskItemType[];
+    _afterTasks: doTask.TaskItemType[];
     constructor() {
         this._status = 'prebuild';
         this._cautionLevel = 2; // good medium choice
@@ -478,14 +441,14 @@ export class Project {
             buildInfo = cache.loadBuildInfo(this._cachePath);
             buildInfo.meta.build_count += 1;
             for (let i = 0; i < this._beforeTasks.length; ++i) {
-                doTask(this._beforeTasks[i]);
+                doTask.doTask(this._beforeTasks[i]);
             }
             obj._build(this,buildInfo);
             cache.purgeOldRecipes(buildInfo.meta,buildInfo.previous);
             cache.purgeUnunsedBlobs(this._cachePath,cache.purgeOldRecipes(buildInfo.meta,buildInfo.recipes));
             cache.saveBuildInfo(this._cachePath,buildInfo);
             for (let i = 0; i < this._afterTasks.length; ++i) {
-                doTask(this._afterTasks[i]);
+                doTask.doTask(this._afterTasks[i]);
             }
         }
         catch (e: any) {
