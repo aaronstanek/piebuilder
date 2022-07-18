@@ -47,8 +47,11 @@ project.target('out/index.js')
     .fileDependency('src/index.ts')
     .task(compileTS('index'))
 
-let duration = project.build('out/package.json')
-    + project.build('out/piebuilder.js')
-    + project.build('out/index.js')
+project.target('.gitignore')
+    .fileDependency('out/package.json')
+    .fileDependency('out/piebuilder.js')
+    .fileDependency('out/index.js')
+
+let duration = project.build('.gitignore')
 
 console.log('built sucessfully in ' + duration + ' milliseconds')
