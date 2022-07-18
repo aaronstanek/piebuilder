@@ -24,12 +24,6 @@ project.globalFileDependency('package.json')
         }
         )
 
-function compileTS(basename) {
-    return ()=>{
-        return 'npx tsc src/' + basename + '.ts --outDir ./out --module commonjs --strict true --newLine lf';
-    }
-}
-
 project.target('out/package.json')
     .fileDependency('src/package.json')
     .task(
@@ -39,13 +33,21 @@ project.target('out/package.json')
         }
     )
 
-project.target('out/piebuilder.js')
-    .fileDependency('src/piebuilder.ts')
-    .task(compileTS('piebuilder'))
+function compileTS(basename) {
+    return ()=>{
+        return 'npx tsc src/' + basename + '.ts --outDir ./out --module commonjs --strict true --newLine lf';
+    }
+}
 
-project.target('out/index.js')
-    .fileDependency('src/index.ts')
-    .task(compileTS('index'))
+function typescriptTarget(project,basename) {
+    project.target('out/'+basename+'.js')
+        .fileDependency('src/'+basename+'.ts')
+        .task(compileTS(basename))
+}
+
+typescriptTarget(project,'piebuilder')
+typescriptTarget(project,'hash')
+typescriptTarget(project,'index')
 
 project.target('.gitignore')
     .fileDependency('out/package.json')
