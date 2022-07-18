@@ -6,10 +6,14 @@ import * as virtualPath from './virtualPath';
 import * as Source from './Source';
 import * as Project from './Project';
 
+type DependencyFormEnum = 'f' | 'dr' | 'dt' | 'drt';
+// f for file (target or source)
+// dr (directory is source)
+// dt (directory is filled with other targets)
+// drt (both dr and drt)
+
 interface RawDependencyDictionaryType {
-    [index: string]: boolean;
-    // true for file
-    // false for directory
+    [index: string]: DependencyFormEnum;
 }
 
 export interface PathsDictionaryType {
@@ -63,7 +67,7 @@ export class Target {
         }
         return this;
     }
-    _newDependency(path: any, isfile: boolean): void {
+    _newDependency(path: any, dependencyForm: DependencyFormEnum): void {
         if (typeof path !== 'string') {
             throw 'In Target: ' + JSON.stringify(this._paths) + ' Target dependencies must be strings, not ' + (typeof path);
         }
@@ -71,14 +75,14 @@ export class Target {
         if (path in this._rawDependencies) {
             throw 'In Target: ' + JSON.stringify(this._paths) + ' Duplicate registration of dependency: ' + path;
         }
-        this._rawDependencies[path] = isfile;
+        this._rawDependencies[path] = dependencyForm;
     }
     fileDependency(path: any): Target {
-        this._newDependency(path,true);
+        this._newDependency(path,'f');
         return this;
     }
     directoryDependency(path: any): Target {
-        this._newDependency(path,false);
+        this._newDependency(path,'drt');
         return this;
     }
     _computeExactDependencies(projectPaths: PathsDictionaryType): void {
@@ -92,7 +96,7 @@ export class Target {
                 if (obj instanceof Target) {
                     // obj is a target
                     // we must have indicated this as a file dependency
-                    if (this._rawDependencies[dependency]) {
+                    if (this._rawDependencies[dependency] === 'f') {
                         // the user correctly marked this as a file
                         this._exactDependencies[dependency] = obj;
                     }
@@ -103,7 +107,7 @@ export class Target {
                 }
                 else {
                     // obj is a source
-                    if (this._rawDependencies[dependency]) {
+                    if (this._rawDependencies[dependency] === 'f') {
                         // it was marked as a file
                         if (obj._isfile) {
                             // correctly marked as a file
@@ -128,7 +132,10 @@ export class Target {
             else {
                 // we do not know about this dependency
                 // we need to create a source
-                let source: Source.Source = new Source.Source(dependency,this._rawDependencies[dependency]);
+                let source: Source.Source = new Source.Source(
+                    dependency,
+                    (this._rawDependencies[dependency] === 'f') 
+                    );
                 this._exactDependencies[dependency] = source;
                 projectPaths[dependency] = source;
             }
