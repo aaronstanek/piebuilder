@@ -24,6 +24,12 @@ project.globalFileDependency('package.json')
         }
         )
 
+function compileTS(basename) {
+    return ()=>{
+        return 'npx tsc src/' + basename + '.ts --outDir ./out --module commonjs --strict true --newLine lf';
+    }
+}
+
 project.target('out/package.json')
     .fileDependency('src/package.json')
     .task(
@@ -35,11 +41,11 @@ project.target('out/package.json')
 
 project.target('out/piebuilder.js')
     .fileDependency('src/piebuilder.ts')
-    .task('npx tsc src/piebuilder.ts --outDir ./out --module commonjs --strict true --newLine lf')
+    .task(compileTS('piebuilder'))
 
 project.target('out/index.js')
     .fileDependency('src/index.ts')
-    .task('npx tsc src/index.ts --outDir ./out --module commonjs --strict true --newLine lf')
+    .task(compileTS('index'))
 
 let duration = project.build('out/package.json')
     + project.build('out/piebuilder.js')
