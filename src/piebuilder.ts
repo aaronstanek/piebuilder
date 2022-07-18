@@ -8,6 +8,7 @@ import * as child_process from 'child_process';
 import * as hash from './hash';
 import * as cache from './cache';
 import * as doTask from './doTask';
+import * as Source from './Source';
 
 interface RawDependencyDictionaryType {
     [index: string]: boolean;
@@ -16,30 +17,7 @@ interface RawDependencyDictionaryType {
 }
 
 interface PathsDictionaryType {
-    [index: string]: Target | Source;
-}
-
-class Source {
-    _path: string;
-    _isfile: boolean;
-    _buildHash: string;
-    constructor(path: string, isfile: boolean) {
-        this._path = path;
-        this._isfile = isfile;
-        this._buildHash = '';
-    }
-    _computeBuildHash(): void {
-        if (this._buildHash.length) return;
-        if (this._isfile) {
-            this._buildHash = hash.fileToHash(this._path);
-        }
-        else {
-            this._buildHash = hash.directoryToHash(this._path);
-        }
-        if (this._buildHash.length < 1) {
-            throw 'Source not available: ' + this._path;
-        }
-    }
+    [index: string]: Target | Source.Source;
 }
 
 class Target {
@@ -114,7 +92,7 @@ class Target {
             if (dependency in projectPaths) {
                 // we know about this dependency
                 // we need to double check that we have the details right
-                let obj: Target | Source = projectPaths[dependency];
+                let obj: Target | Source.Source = projectPaths[dependency];
                 if (obj instanceof Target) {
                     // obj is a target
                     // we must have indicated this as a file dependency
@@ -154,7 +132,7 @@ class Target {
             else {
                 // we do not know about this dependency
                 // we need to create a source
-                let source: Source = new Source(dependency,this._rawDependencies[dependency]);
+                let source: Source.Source = new Source.Source(dependency,this._rawDependencies[dependency]);
                 this._exactDependencies[dependency] = source;
                 projectPaths[dependency] = source;
             }
@@ -209,13 +187,13 @@ class Target {
         // build all dependencies recursively
         let dependencyList: string[] = Object.keys(this._exactDependencies);
         for (let i = 0; i < dependencyList.length; ++i) {
-            let obj: Target | Source = this._exactDependencies[dependencyList[i]];
+            let obj: Target | Source.Source = this._exactDependencies[dependencyList[i]];
             if (obj instanceof Target) {
                 // obj is a Target
                 obj._build(project,buildInfo);
             }
             else {
-                // obj is a Source
+                // obj is a Source.Source
                 obj._computeBuildHash();
             }
         }
@@ -402,7 +380,7 @@ export class Project {
         for (let i = 0; i < targetPaths.length; ++i) {
             let targetPath: string = targetPaths[i];
             let obj: Target = this._paths[targetPath] as Target;
-            // typecasting is safe here because Source objects
+            // typecasting is safe here because Source.Source objects
             // are only added after the first call to Target.build
             // we know that hasn't happened yet because we just flipped
             // the status from 'prebuild' to 'active'
@@ -428,8 +406,8 @@ export class Project {
         if (!(goalPath in this._paths)) {
             throw 'Project.build expects a target path to be given as an argument, not ' + goalPath;
         }
-        let obj: Target | Source = this._paths[goalPath];
-        if (obj instanceof Source) {
+        let obj: Target | Source.Source = this._paths[goalPath];
+        if (obj instanceof Source.Source) {
             throw 'Project.build expects a target path to be given as an argument, not a source: ' + goalPath;
         }
         let startTime: number = new Date().getTime();
