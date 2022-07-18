@@ -46,8 +46,10 @@ function typescriptTarget(project,basename) {
 }
 
 typescriptTarget(project,'piebuilder')
+typescriptTarget(project,'cache')
 typescriptTarget(project,'hash')
 typescriptTarget(project,'index')
+
 
 project.target('.gitignore')
     .fileDependency('out/package.json')

@@ -6,166 +6,8 @@ import * as pathlib from 'path';
 import * as child_process from 'child_process';
 
 import * as hash from './hash';
+import * as cache from './cache';
 
-// cache management
-
-type BuildInfoMetaType = {
-    'file_format': number,
-    'build_count': number,
-    'memory_lifetime': number
-}
-
-type PreviousElementType = [string,number]
-
-interface BuildInfoPreviousType {
-    [index: string]: PreviousElementType;
-}
-
-type RecipeType = [string,number]
-
-interface BuildInfoRecipesType {
-    [index: string]: RecipeType;
-}
-
-type BuildInfoType = {
-    'meta': BuildInfoMetaType,
-    'previous': BuildInfoPreviousType,
-    'recipes': BuildInfoRecipesType
-}
-
-function saveBuildInfo(path: string, buildInfo: BuildInfoType): void {
-    let buildInfoPath: string = pathlib.join(path,'build_info.json');
-    let document: string = JSON.stringify(buildInfo);
-    fs.writeFileSync(buildInfoPath,document,{flag:'w',encoding:'utf8'});
-}
-
-function initializeCache(path: string): void {
-    let blobPath: string = pathlib.join(path,'blobs');
-    fs.mkdirSync(blobPath,{recursive:true});
-}
-
-function checkBuildInfoMetaFormat(meta: any): boolean {
-    if (typeof meta !== 'object') return false;
-    if (typeof meta.file_format !== 'number') return false;
-    if (typeof meta.build_count !== 'number') return false;
-    if (typeof meta.memory_lifetime !== 'number') return false;
-    return true;
-}
-
-function checkBuildInfoPreviousRecipesFormat(recipes: any): boolean {
-    if (typeof recipes !== 'object') return false;
-    let keys: string[] = Object.keys(recipes);
-    for (let i = 0; i < keys.length; ++i) {
-        let element: any = recipes[keys[i]];
-        if (!Array.isArray(element)) return false;
-        if (element.length !== 2) return false;
-        if (typeof element[0] !== 'string') return false;
-        if (typeof element[1] !== 'number') return false;
-    }
-    return true;
-}
-
-function checkBuildInfoFormat(buildInfo: any): boolean {
-    if (typeof buildInfo !== 'object') return false;
-    if (!checkBuildInfoMetaFormat(buildInfo.meta)) return false;
-    if (!checkBuildInfoPreviousRecipesFormat(buildInfo.previous)) return false;
-    if (!checkBuildInfoPreviousRecipesFormat(buildInfo.recipes)) return false;
-    return true;
-}
-
-function loadBuildInfoMini(path: string): BuildInfoType | null {
-    let buildInfoPath: string = pathlib.join(path,'build_info.json');
-    try {
-        let output: any = JSON.parse(fs.readFileSync(buildInfoPath,{flag:'r',encoding:'utf8'}));
-        if (checkBuildInfoFormat(output)) return output;
-    }
-    catch {}
-    return null;
-}
-
-function loadBuildInfo(path: string): BuildInfoType {
-    initializeCache(path);
-    let output: BuildInfoType | null = loadBuildInfoMini(path);
-    if (output !== null) return output;
-    saveBuildInfo(
-        path,
-        {
-            'meta': {
-                'file_format': 1,
-                'build_count': 0,
-                'memory_lifetime': 20
-            },
-            'previous': {},
-            'recipes': {}
-        }
-    );
-    output = loadBuildInfoMini(path);
-    if (output !== null) return output;
-    // we are not able to load the cache
-    // there is no recovery
-    throw 'Unable to load cache. Program terminated.';
-}
-
-function blobExists(path: string, blobName: string): boolean {
-    let blobPath: string = pathlib.join(pathlib.join(path,"blobs"),blobName);
-    return fs.existsSync(blobPath);
-}
-
-interface BlobCollectionType {
-    [index: string]: null;
-}
-
-function purgeOldRecipes(meta: BuildInfoMetaType, recipes: BuildInfoRecipesType): BlobCollectionType {
-    // returns names of active blobs
-    // first purge the old recipes
-    let oldestBirthday: number = meta.build_count - meta.memory_lifetime;
-    // oldestBirthday is the oldest recipes that we will retain
-    let recipeList: string[] = Object.keys(recipes);
-    let activeBlobs: BlobCollectionType = {};
-    for (let i = 0; i < recipeList.length; ++i) {
-        let recipe: RecipeType = recipes[recipeList[i]];
-        if (recipe[1] < oldestBirthday || recipe[1] > meta.build_count) {
-            // we need to delete this recipe
-            delete recipes[recipeList[i]];
-        }
-        else {
-            // we should keep the associated blob
-            activeBlobs[recipe[0]] = null;
-        }
-    }
-    return activeBlobs;
-}
-
-function purgeUnunsedBlobs(path: string, activeBlobs: BlobCollectionType): void {
-    let blobPath: string = pathlib.join(path,'blobs');
-    let blobList: string[];
-    try {
-        blobList = fs.readdirSync(blobPath);
-    }
-    catch {
-        // we are not able to access the blob directory
-        // this isn't the end of the world
-        // just give up?
-        return;
-    }
-    for (let i = 0; i < blobList.length; ++i) {
-        if (!(blobList[i] in activeBlobs)) {
-            // we need to delete this blob
-            let deletionPath = pathlib.join(blobPath,blobList[i]);
-            fs.unlinkSync(deletionPath);
-        }
-    }
-}
-
-function copyFileIntoCache(path: string, sourcePath: string, blobName: string): void {
-    let destinationPath: string = pathlib.join(pathlib.join(path,"blobs"),blobName);
-    fs.copyFileSync(sourcePath,destinationPath);
-}
-
-function copyFileFromCache(path: string, destinationPath: string, blobName: string): void {
-    let sourcePath: string = pathlib.join(pathlib.join(path,"blobs"),blobName);
-    fs.copyFileSync(sourcePath,destinationPath);
-}
 
 type TaskItemType = string | Function;
 
@@ -367,7 +209,7 @@ class Target {
         }
         return hash.documentToHash(document);
     }
-    _hardBuild(project: Project, buildInfo: BuildInfoType): void {
+    _hardBuild(project: Project, buildInfo: cache.BuildInfoType): void {
         for (let i = 0; i < this._tasks.length; ++i) {
             doTask(this._tasks[i]);
         }
@@ -380,13 +222,13 @@ class Target {
                 // the file was not created
                 throw 'Target was not created by tasks: ' + targetPath;
             }
-            copyFileIntoCache(project._cachePath,targetPath,targetHash);
+            cache.copyFileIntoCache(project._cachePath,targetPath,targetHash);
             buildInfo.previous[targetPath] = [targetHash,buildInfo.meta.build_count];
             let recipeHash: string = this._computeRecipeHash(targetPath);
             buildInfo.recipes[recipeHash] = [targetHash,buildInfo.meta.build_count];
         }
     }
-    _computeBuildHash(previous: BuildInfoPreviousType): string {
+    _computeBuildHash(previous: cache.BuildInfoPreviousType): string {
         // all the values for previous exist and are correct
         let document: string[][] = [];
         let pathsLocalCopy = [...this._paths];
@@ -397,7 +239,7 @@ class Target {
         }
         return hash.documentToHash(document);
     }
-    _build(project: Project, buildInfo: BuildInfoType): void {
+    _build(project: Project, buildInfo: cache.BuildInfoType): void {
         if (this._buildHash.length) return;
         this._computeExactDependencies(project._paths);
         // this._exactDependencies is set
@@ -430,7 +272,7 @@ class Target {
                     // this is a known recipe
                     // there is a decent chance that it is in previous
                     // we probably have a blob for it if we need it
-                    let recipe: RecipeType = buildInfo.recipes[recipeHash];
+                    let recipe: cache.RecipeType = buildInfo.recipes[recipeHash];
                     recipe[1] = buildInfo.meta.build_count;
                     let targetHash: string = recipe[0];
                     // check to see if the file is already built in place
@@ -460,7 +302,7 @@ class Target {
                     }
                     // either the file did not exist previously
                     // or its hash is wrong
-                    if (blobExists(project._cachePath,targetHash)) {
+                    if (cache.blobExists(project._cachePath,targetHash)) {
                         blobCopyList.push([targetPath,targetHash]);
                     }
                     else {
@@ -485,7 +327,7 @@ class Target {
         }
         else {
             for (let i = 0; i < blobCopyList.length; ++i) {
-                copyFileFromCache(project._cachePath,blobCopyList[i][0],blobCopyList[i][1]);
+                cache.copyFileFromCache(project._cachePath,blobCopyList[i][0],blobCopyList[i][1]);
                 buildInfo.previous[blobCopyList[i][0]] = [blobCopyList[i][1],buildInfo.meta.build_count];
             }
         }
@@ -631,17 +473,17 @@ export class Project {
         if (this._status === 'prebuild') {
             this._activate();
         }
-        let buildInfo: BuildInfoType | null = null;
+        let buildInfo: cache.BuildInfoType | null = null;
         try {
-            buildInfo = loadBuildInfo(this._cachePath);
+            buildInfo = cache.loadBuildInfo(this._cachePath);
             buildInfo.meta.build_count += 1;
             for (let i = 0; i < this._beforeTasks.length; ++i) {
                 doTask(this._beforeTasks[i]);
             }
             obj._build(this,buildInfo);
-            purgeOldRecipes(buildInfo.meta,buildInfo.previous);
-            purgeUnunsedBlobs(this._cachePath,purgeOldRecipes(buildInfo.meta,buildInfo.recipes));
-            saveBuildInfo(this._cachePath,buildInfo);
+            cache.purgeOldRecipes(buildInfo.meta,buildInfo.previous);
+            cache.purgeUnunsedBlobs(this._cachePath,cache.purgeOldRecipes(buildInfo.meta,buildInfo.recipes));
+            cache.saveBuildInfo(this._cachePath,buildInfo);
             for (let i = 0; i < this._afterTasks.length; ++i) {
                 doTask(this._afterTasks[i]);
             }
@@ -655,7 +497,7 @@ export class Project {
             else {
                 // we were able to load the build info
                 // but there was an error somewhere else
-                saveBuildInfo(this._cachePath,buildInfo);
+                cache.saveBuildInfo(this._cachePath,buildInfo);
             }
             throw e;
         }
