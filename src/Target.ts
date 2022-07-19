@@ -81,11 +81,11 @@ export class Target {
         this._newDependency(path,'f');
         return this;
     }
-    directoryRecursiveDependency(path: any): Target {
+    directorySourcesDependency(path: any): Target {
         this._newDependency(path,'dr');
         return this;
     }
-    directoryOnlyTargetsDependency(path: any): Target {
+    directoryTargetsDependency(path: any): Target {
         this._newDependency(path,'dt');
         return this;
     }
