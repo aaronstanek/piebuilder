@@ -275,7 +275,15 @@ export class Target {
         return hash.documentToHash(document);
     }
     _build(project: Project.Project, buildInfo: cache.BuildInfoType): void {
-        if (this._buildHash.length) return;
+        if (this._buildHash.length) {
+            if (this._buildHash === 'building') {
+                throw 'Circular dependencies detected in target: ' + JSON.stringify(this._paths);
+            }
+            else {
+                return;
+            }
+        }
+        this._buildHash = 'building';
         this._computeExactDependencies(project._paths);
         // this._exactDependencies is set
         // build all dependencies recursively
