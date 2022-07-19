@@ -219,6 +219,32 @@ export class Target {
             }
         }
     }
+    _buildDependencies(project: Project.Project, buildInfo: cache.BuildInfoType): void {
+        // build all dependencies
+        // because a target in a drt dependency
+        // might impact the source hash
+        // building targets before sources will ensure that
+        // if a target's correct hash is unchanged, then the drt
+        // source will also be unchanged, avoiding extra recipes and rebuilds
+        let dependencyList: string[] = Object.keys(this._exactDependencies);
+        let targetDependencies: Target[] = [];
+        let sourceDependencies: Source.Source[] = [];
+        for (let i = 0; i < dependencyList.length; ++i) {
+            let obj: Target | Source.Source = this._exactDependencies[dependencyList[i]];
+            if (obj instanceof Target) {
+                targetDependencies.push(obj);
+            }
+            else {
+                sourceDependencies.push(obj);
+            }
+        }
+        for (let i = 0; i < targetDependencies.length; ++i) {
+            targetDependencies[i]._build(project,buildInfo);
+        }
+        for (let i = 0; i < sourceDependencies.length; ++i) {
+            sourceDependencies[i]._computeBuildHash();
+        }
+    }
     _computeRecipeHash(targetPath: string): string {
         let dependencyList = Object.keys(this._exactDependencies);
         // need consistent order
@@ -287,18 +313,7 @@ export class Target {
         this._computeExactDependencies(project._paths);
         // this._exactDependencies is set
         // build all dependencies recursively
-        let dependencyList: string[] = Object.keys(this._exactDependencies);
-        for (let i = 0; i < dependencyList.length; ++i) {
-            let obj: Target | Source.Source = this._exactDependencies[dependencyList[i]];
-            if (obj instanceof Target) {
-                // obj is a Target
-                obj._build(project,buildInfo);
-            }
-            else {
-                // obj is a Source.Source
-                obj._computeBuildHash();
-            }
-        }
+        this._buildDependencies(project,buildInfo);
         // all dependencies and subdependencies are built
         let blobCopyList: string[][] = [];
         // [destinaitonPath,blobName]
