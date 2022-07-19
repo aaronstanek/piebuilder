@@ -185,7 +185,7 @@ export class Target {
                 if (projectPaths[path] instanceof Source.Source) continue;
                 // we are only considering real targets at this point
                 let relativePath = pathlib.relative(dependency,path);
-                if (relativePath.slice(0,2) === '..') {
+                if (relativePath.slice(0,2) !== '..') {
                     // path is within the scope of dependency
                     virtualDependency.fileDependency(path);
                 }
