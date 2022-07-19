@@ -36,24 +36,23 @@ function compileTS(basename) {
     }
 }
 
-function typescriptTarget(project,endTarget,basename) {
-    endTarget.fileDependency('out/' + basename + '.js')
+function typescriptTarget(project,basename) {
     project.target('out/'+basename+'.js')
         .fileDependency('src/'+basename+'.ts')
         .task(compileTS(basename))
 }
 
-let endTarget = project.target(piebuilder.makeVirtualPath('endTarget'))
-    .fileDependency('out/package.json')
+typescriptTarget(project,'cache')
+typescriptTarget(project,'doTask')
+typescriptTarget(project,'hash')
+typescriptTarget(project,'index')
+typescriptTarget(project,'Project')
+typescriptTarget(project,'Source')
+typescriptTarget(project,'Target')
+typescriptTarget(project,'virtualPath')
 
-typescriptTarget(project,endTarget,'cache')
-typescriptTarget(project,endTarget,'doTask')
-typescriptTarget(project,endTarget,'hash')
-typescriptTarget(project,endTarget,'index')
-typescriptTarget(project,endTarget,'Project')
-typescriptTarget(project,endTarget,'Source')
-typescriptTarget(project,endTarget,'Target')
-typescriptTarget(project,endTarget,'virtualPath')
+project.target(piebuilder.makeVirtualPath('endTarget'))
+    .directoryDependency('out')
 
 let duration = project.build(piebuilder.makeVirtualPath('endTarget'))
 
