@@ -1,5 +1,7 @@
 import * as pathlib from 'path';
+
 import * as cache from './cache';
+import * as DependencyContext from './DependencyContext';
 import * as doTask from './doTask';
 import * as Source from './Source';
 import * as Target from './Target';
