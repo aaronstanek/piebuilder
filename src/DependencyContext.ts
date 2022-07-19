@@ -10,7 +10,7 @@ export class DependencyContext {
     _project: Project.Project;
     _ancestor: DependencyContext | null;
     _dependencies: DependencyTuple[];
-    constructor(proj: Project.Project, ans: DependencyContext) {
+    constructor(proj: Project.Project, ans: DependencyContext | null) {
         this._status = 'pretarget';
         this._project = proj;
         this._ancestor = ans;

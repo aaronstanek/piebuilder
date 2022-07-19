@@ -89,6 +89,12 @@ export class Project {
         }
         return obj;
     }
+    dependencyContext(): DependencyContext.DependencyContext {
+        if (this._status !== 'prebuild') {
+            throw 'Project.dependencyContext may not be called after calling Project.build';
+        }
+        return new DependencyContext.DependencyContext(this,null);
+    }
     _checkTaskType(taskitem: any): void {
         if (typeof taskitem !== 'string' && typeof taskitem !== 'function') {
             throw 'Tasks passed to Project must be strings or functions, not ' + (typeof taskitem);
