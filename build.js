@@ -36,23 +36,23 @@ function compileTS(basename) {
     }
 }
 
-function typescriptTarget(project,basename) {
-    project.target('out/'+basename+'.js')
+function typescriptTarget(basename,dependencies) {
+    let t = project.target('out/'+basename+'.js')
         .fileDependency('src/'+basename+'.ts')
         .task(compileTS(basename))
-}
-
-function allTypescriptTargets(project) {
-    let src = fs.readdirSync('src')
-    for (let i = 0; i < src.length; ++i) {
-        let name = src[i]
-        if (name.slice(name.length-3) === '.ts') {
-            typescriptTarget(project,name.slice(0,name.length-3))
-        }
+    for (let i = 0; i < dependencies.length; ++i) {
+        t.fileDependency('src/'+dependencies[i]+'.ts')
     }
 }
 
-allTypescriptTargets(project)
+typescriptTarget('cache',[])
+typescriptTarget('doTask',[])
+typescriptTarget('hash',[])
+typescriptTarget('index',['Project','virtualPath'])
+typescriptTarget('Project',['cache','doTask','Source','Target'])
+typescriptTarget('Source',['hash'])
+typescriptTarget('Target',['cache','hash','doTask','Project','Source','virtualPath'])
+typescriptTarget('virtualPath',[])
 
 project.target(piebuilder.makeVirtualPath('endTarget'))
     .directoryTargetsDependency('out')
