@@ -116,7 +116,7 @@ export class Project {
                 obj.fileDependency(this._globalFileDependencies[j]);
             }
             for (let j = 0; j < this._globalDirectoryDependencies.length; ++j) {
-                obj.directoryDependency(this._globalDirectoryDependencies[j]);
+                obj.directoryTotalDependency(this._globalDirectoryDependencies[j]);
             }
         }
     }
