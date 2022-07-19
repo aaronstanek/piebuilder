@@ -13,8 +13,6 @@ export class Project {
     _cautionLevel: 1 | 2 | 3;
     _cachePath: string;
     _paths: Target.PathsDictionaryType;
-    _globalFileDependencies: string[];
-    _globalDirectoryDependencies: string[];
     _beforeTasks: doTask.TaskItemType[];
     _afterTasks: doTask.TaskItemType[];
     constructor() {
@@ -22,8 +20,6 @@ export class Project {
         this._cautionLevel = 2; // good medium choice
         this._cachePath = pathlib.normalize('piebuilder_cache');
         this._paths = {};
-        this._globalFileDependencies = [];
-        this._globalDirectoryDependencies = [];
         this._beforeTasks = [];
         this._afterTasks = [];
     }
@@ -48,26 +44,6 @@ export class Project {
             throw 'Project.setCautionLevel expects argument to be 1, 2, or 3, not ' + level;
         }
         this._cautionLevel = level;
-        return this;
-    }
-    globalFileDependency(path: any): Project {
-        if (typeof path !== 'string') {
-            throw 'Project.globalFileDependency expects a string argument, not ' + (typeof path);
-        }
-        if (path.length < 1) {
-            throw 'Project.globalFileDependency expects a nonempty string argument';
-        }
-        this._globalFileDependencies.push(path);
-        return this;
-    }
-    globalDirectoryDependency(path: any): Project {
-        if (typeof path !== 'string') {
-            throw 'Project.globalDirectoryDependency expects a string argument, not ' + (typeof path);
-        }
-        if (path.length < 1) {
-            throw 'Project.globalDirectoryDependency expects a nonempty string argument';
-        }
-        this._globalDirectoryDependencies.push(path);
         return this;
     }
     target(path: any): Target.Target {
@@ -110,24 +86,6 @@ export class Project {
         this._afterTasks.push(taskitem);
         return this;
     }
-    _activate(): void {
-        this._status = 'active';
-        let targetPaths: string[] = Object.keys(this._paths);
-        for (let i = 0; i < targetPaths.length; ++i) {
-            let targetPath: string = targetPaths[i];
-            let obj: Target.Target = this._paths[targetPath] as Target.Target;
-            // typecasting is safe here because Source.Source objects
-            // are only added after the first call to Target.build
-            // we know that hasn't happened yet because we just flipped
-            // the status from 'prebuild' to 'active'
-            for (let j = 0; j < this._globalFileDependencies.length; ++j) {
-                obj.fileDependency(this._globalFileDependencies[j]);
-            }
-            for (let j = 0; j < this._globalDirectoryDependencies.length; ++j) {
-                obj.directoryTotalDependency(this._globalDirectoryDependencies[j]);
-            }
-        }
-    }
     build(goalPath: any) {
         if (this._status === 'error') {
             throw 'Project.build may not be called after a build error has occured';
@@ -148,7 +106,7 @@ export class Project {
         }
         let startTime: number = new Date().getTime();
         if (this._status === 'prebuild') {
-            this._activate();
+            this._status = 'active';
         }
         let buildInfo: cache.BuildInfoType | null = null;
         try {
