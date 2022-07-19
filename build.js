@@ -52,7 +52,7 @@ typescriptTarget(project,'Target')
 typescriptTarget(project,'virtualPath')
 
 project.target(piebuilder.makeVirtualPath('endTarget'))
-    .directoryDependency('out')
+    .directoryOnlyTargetsDependency('out')
 
 let duration = project.build(piebuilder.makeVirtualPath('endTarget'))
 
