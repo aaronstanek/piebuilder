@@ -6,7 +6,7 @@ import * as virtualPath from './virtualPath';
 import * as Source from './Source';
 import * as Project from './Project';
 
-type DependencyFormEnum = 'f' | 'dr' | 'dt' | 'drt';
+export type DependencyFormEnum = 'f' | 'dr' | 'dt' | 'drt';
 // f for file (target or source)
 // dr (directory is source)
 // dt (directory is filled with other targets)

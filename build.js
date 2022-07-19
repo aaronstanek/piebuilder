@@ -46,6 +46,7 @@ function typescriptTarget(basename,dependencies) {
 }
 
 typescriptTarget('cache',[])
+typescriptTarget('DependencyContext',[])
 typescriptTarget('doTask',[])
 typescriptTarget('hash',[])
 typescriptTarget('index',['Project','virtualPath'])
