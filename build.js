@@ -42,14 +42,17 @@ function typescriptTarget(project,basename) {
         .task(compileTS(basename))
 }
 
-typescriptTarget(project,'cache')
-typescriptTarget(project,'doTask')
-typescriptTarget(project,'hash')
-typescriptTarget(project,'index')
-typescriptTarget(project,'Project')
-typescriptTarget(project,'Source')
-typescriptTarget(project,'Target')
-typescriptTarget(project,'virtualPath')
+function allTypescriptTargets(project) {
+    let src = fs.readdirSync('src')
+    for (let i = 0; i < src.length; ++i) {
+        let name = src[i]
+        if (name.slice(name.length-3) === '.ts') {
+            typescriptTarget(project,name.slice(0,name.length-3))
+        }
+    }
+}
+
+allTypescriptTargets(project)
 
 project.target(piebuilder.makeVirtualPath('endTarget'))
     .directoryTargetsDependency('out')
