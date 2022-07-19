@@ -85,59 +85,137 @@ export class Target {
         this._newDependency(path,'drt');
         return this;
     }
+    _computeExactDependenciesFormF(projectPaths: PathsDictionaryType, dependency: string): void {
+        // dependency is marked as a file
+        // it could be a target or a source
+        if (dependency in projectPaths) {
+            // we know about this dependency
+            let obj: Target | Source.Source = projectPaths[dependency];
+            if (obj instanceof Target) {
+                // obj is a Target
+                // Target can only reference a file
+                this._exactDependencies[dependency] = obj;
+            }
+            else {
+                // obj is a Source
+                // it could reference a file or directory
+                // double check that it is actually a file
+                if (obj._isfile) {
+                    this._exactDependencies[dependency] = obj;
+                }
+                else {
+                    // wrong
+                    throw 'In Target: ' + JSON.stringify(this._paths) + ' dependency: ' + dependency + ' was marked as a file, but it is actually a directory';
+                }
+            }
+        }
+        else {
+            // we don't know about this dependency
+            // we need to create it
+            let source: Source.Source = new Source.Source(dependency,true);
+            projectPaths[dependency] = source;
+            this._exactDependencies[dependency] = source;
+        }
+    }
+    _computeExactDependenciesFormDR(projectPaths: PathsDictionaryType, dependency: string): void {
+        // dependency is marked as a recursive
+        // hash of a directory tree
+        if (dependency in projectPaths) {
+            // we know about this dependency
+            // we can just use the existing object
+            let obj: Target | Source.Source = projectPaths[dependency];
+            // check that it's a source
+            if (obj instanceof Source.Source) {
+                // check that it's a directory source
+                if (obj._isfile) {
+                    throw 'In Target: ' + JSON.stringify(this._paths) + ' dependency: ' + dependency + ' was marked as a directory, but it is actually a file';
+                }
+                else {
+                    this._exactDependencies[dependency] = obj;
+                }
+            }
+            else {
+                throw 'In Target: ' + JSON.stringify(this._paths) + ' dependency: ' + dependency + ' was marked as a source, but it is actually a target';
+            }
+        }
+        else {
+            // we don't know about this dependency
+            // we need to create it
+            let source: Source.Source = new Source.Source(dependency,false);
+            projectPaths[dependency] = source;
+            this._exactDependencies[dependency] = source;
+        }
+    }
+    _computeExactDependenciesFormDT(projectPaths: PathsDictionaryType, dependency: string) {
+        // dependency is marked as a
+        // hash of all taargets in a directory
+        // first, make sure that we won't have a name
+        // conflict by virtualizing the name
+        let virtualDependencyName = virtualPath.makeVirtualAutoPath(dependency);
+        if (virtualDependencyName in this._rawDependencies) {
+            throw 'In Target: ' + JSON.stringify(this._paths) + ' dependency: ' + virtualDependencyName + ' was registered by the user, but this virtual path is required by the system for another purpose';
+        }
+        // we need to create a virtual file to depend on all of these
+        // things for easier reuse
+        if (virtualDependencyName in projectPaths) {
+            // we know about this dependency
+            // we can just use the existing object
+            let obj: Target | Source.Source = projectPaths[virtualDependencyName];
+            // an integrity check here doesn't do much
+            // because is is very unlikely that this path could have been
+            // created by the user
+            // but nonetheless, it is good practice
+            if (obj instanceof Target) {
+                this._exactDependencies[virtualDependencyName] = obj;
+            }
+            else {
+                throw 'In Target: ' + JSON.stringify(this._paths) + ' dependency: ' + dependency + ' was marked as a target, but it is actually a source';
+            }
+        }
+        else {
+            // we don't know about this dependency
+            // we need to create it
+            // find all targets
+            // that are within the scope of the path
+            let virtualDependency: Target = new Target(virtualDependencyName);
+            let projectPathsList: string[] = Object.keys(projectPaths);
+            for (let i = 0; i < projectPathsList.length; ++i) {
+                let path: string = projectPathsList[i];
+                if (virtualPath.pathIsVirtual(path)) continue;
+                if (projectPaths[path] instanceof Source.Source) continue;
+                // we are only considering real targets at this point
+                let relativePath = pathlib.relative(dependency,path);
+                if (relativePath.slice(0,2) === '..') {
+                    // path is within the scope of dependency
+                    virtualDependency.fileDependency(path);
+                }
+            }
+            // virtualDependency now has all the necessary targets
+            // as direct dependencies
+            projectPaths[virtualDependencyName] = virtualDependency;
+            this._exactDependencies[virtualDependencyName] = virtualDependency;
+        }
+    }
     _computeExactDependencies(projectPaths: PathsDictionaryType): void {
         let dependencyList: string[] = Object.keys(this._rawDependencies);
         for (let i = 0; i < dependencyList.length; ++i) {
             let dependency: string = dependencyList[i];
-            if (dependency in projectPaths) {
-                // we know about this dependency
-                // we need to double check that we have the details right
-                let obj: Target | Source.Source = projectPaths[dependency];
-                if (obj instanceof Target) {
-                    // obj is a target
-                    // we must have indicated this as a file dependency
-                    if (this._rawDependencies[dependency] === 'f') {
-                        // the user correctly marked this as a file
-                        this._exactDependencies[dependency] = obj;
-                    }
-                    else {
-                        // the user incorrectly marked this as a directory
-                        throw 'In Target: ' + JSON.stringify(this._paths) + ' dependency: ' + dependency + ' was marked as a directory, but it is actually a file';
-                    }
-                }
-                else {
-                    // obj is a source
-                    if (this._rawDependencies[dependency] === 'f') {
-                        // it was marked as a file
-                        if (obj._isfile) {
-                            // correctly marked as a file
-                            this._exactDependencies[dependency] = obj;
-                        }
-                        else {
-                            throw 'In Target: ' + JSON.stringify(this._paths) + ' dependency: ' + dependency + ' was marked as a file, but it is actually a directory';
-                        }
-                    }
-                    else {
-                        // it was marked as a directory
-                        if (obj._isfile) {
-                            throw 'In Target: ' + JSON.stringify(this._paths) + ' dependency: ' + dependency + ' was marked as a directory, but it is actually a file';
-                        }
-                        else {
-                            // correctly marked as dependency
-                            this._exactDependencies[dependency] = obj;
-                        }
-                    }
-                }
+            let dependencyForm: DependencyFormEnum = this._rawDependencies[dependency];
+            if (dependencyForm === 'f') {
+                this._computeExactDependenciesFormF(projectPaths,dependency);
+            }
+            else if (dependencyForm === 'dr') {
+                this._computeExactDependenciesFormDR(projectPaths,dependency);
+            }
+            else if (dependencyForm === 'dt') {
+                this._computeExactDependenciesFormDT(projectPaths,dependency);
             }
             else {
-                // we do not know about this dependency
-                // we need to create a source
-                let source: Source.Source = new Source.Source(
-                    dependency,
-                    (this._rawDependencies[dependency] === 'f') 
-                    );
-                this._exactDependencies[dependency] = source;
-                projectPaths[dependency] = source;
+                // dependencyForm === 'drt
+                // it's ok to use both because the DT dependency name
+                // becomes virtualized
+                this._computeExactDependenciesFormDR(projectPaths,dependency);
+                this._computeExactDependenciesFormDT(projectPaths,dependency);
             }
         }
     }
