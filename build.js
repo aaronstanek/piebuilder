@@ -59,6 +59,18 @@ typescriptTarget('virtualPath',[])
 project.target(piebuilder.makeVirtualPath('endTarget'))
     .directoryTargetsDependency('out')
 
-let duration = project.build(piebuilder.makeVirtualPath('endTarget'))
+let buildOutput = project.build(piebuilder.makeVirtualPath('endTarget'))
 
-console.log('built sucessfully in ' + duration + ' milliseconds')
+console.log('')
+
+let fileList = Object.keys(buildOutput.files)
+for (let i = 0; i < fileList.length; ++i) {
+    let fileName = fileList[i]
+    console.log(fileName,buildOutput.files[fileName])
+}
+
+console.log('')
+
+console.log('built sucessfully in ' + buildOutput.duration + ' milliseconds')
+
+console.log('')
