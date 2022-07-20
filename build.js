@@ -21,27 +21,31 @@ project.beforeTask(
         }
         )
 
-project.target('out/package.json')
-    .fileDependency('src/package.json')
+project.target('out' + piebuilder.sys.pathSep + 'package.json')
+    .fileDependency('src' + piebuilder.sys.pathSep + 'package.json')
     .task(
         ()=>{
-            fs.copyFileSync('src/package.json','out/package.json')
+            fs.copyFileSync(
+                'src' + piebuilder.sys.pathSep + 'package.json',
+                'out' + piebuilder.sys.pathSep + 'package.json'
+                )
             return 0;
         }
     )
 
 function compileTS(basename) {
     return ()=>{
-        return 'npx tsc src/' + basename + '.ts --outDir ./out --module commonjs --strict true --newLine lf';
+        return 'npx tsc src' + piebuilder.sys.pathSep + basename + '.ts --outDir .'
+            + piebuilder.sys.pathSep + 'out --module commonjs --strict true --newLine lf';
     }
 }
 
 function typescriptTarget(basename,dependencies) {
-    let t = project.target('out/'+basename+'.js')
-        .fileDependency('src/'+basename+'.ts')
+    let t = project.target('out' + piebuilder.sys.pathSep + basename + '.js')
+        .fileDependency('src' + piebuilder.sys.pathSep + basename + '.ts')
         .task(compileTS(basename))
     for (let i = 0; i < dependencies.length; ++i) {
-        t.fileDependency('src/'+dependencies[i]+'.ts')
+        t.fileDependency('src' + piebuilder.sys.pathSep+dependencies[i] + '.ts')
     }
 }
 
