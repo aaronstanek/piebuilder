@@ -1,6 +1,6 @@
 {
   "name": "piebuilder",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Simple build system written in TypeScript",
   "main": "index.js",
   "scripts": {

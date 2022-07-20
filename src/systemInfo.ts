@@ -2,8 +2,7 @@ import * as os from 'os';
 
 type SystemInfoType = {
     'family': 'unix' | 'windows',
-    'pathSep': '/' | '\\',
-    'shellSep': ';' | '&'
+    'pathSep': '/' | '\\'
 }
 
 export function systemInfo(): SystemInfoType {
@@ -17,14 +16,12 @@ export function systemInfo(): SystemInfoType {
         case 'sunos':
             return {
                 family: 'unix',
-                pathSep: '/',
-                shellSep: ';'
+                pathSep: '/'
             }
         case 'win32':
             return {
                 family: 'windows',
-                pathSep: '\\',
-                shellSep: '&'
+                pathSep: '\\'
             }
         default:
             throw "Unknown platform";
