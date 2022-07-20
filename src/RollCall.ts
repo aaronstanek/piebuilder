@@ -1,10 +1,10 @@
 type RollCallResult = 'same' | 'cached' | 'built'
 
-interface RollCallDictionary {
+export interface RollCallDictionary {
     [index: string]: RollCallResult;
 }
 
-class RollCall {
+export class RollCall {
     _paths: RollCallDictionary;
     constructor() {
         this._paths = {};

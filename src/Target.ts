@@ -5,6 +5,7 @@ import * as doTask from './doTask';
 import * as virtualPath from './virtualPath';
 import * as Source from './Source';
 import * as Project from './Project';
+import * as RollCall from './RollCall';
 
 export type DependencyFormEnum = 'f' | 'dr' | 'dt' | 'drt';
 // f for file (target or source)
@@ -227,7 +228,7 @@ export class Target {
             }
         }
     }
-    _buildDependencies(project: Project.Project, buildInfo: cache.BuildInfoType): void {
+    _buildDependencies(rollcall: RollCall.RollCall, project: Project.Project, buildInfo: cache.BuildInfoType): void {
         // build all dependencies
         // because a target in a drt dependency
         // might impact the source hash
@@ -247,7 +248,7 @@ export class Target {
             }
         }
         for (let i = 0; i < targetDependencies.length; ++i) {
-            targetDependencies[i]._build(project,buildInfo);
+            targetDependencies[i]._build(rollcall,project,buildInfo);
         }
         for (let i = 0; i < sourceDependencies.length; ++i) {
             sourceDependencies[i]._computeBuildHash();
@@ -308,7 +309,7 @@ export class Target {
         }
         return hash.documentToHash(document);
     }
-    _build(project: Project.Project, buildInfo: cache.BuildInfoType): void {
+    _build(rollcall: RollCall.RollCall, project: Project.Project, buildInfo: cache.BuildInfoType): void {
         if (this._buildHash.length) {
             if (this._buildHash === 'building') {
                 throw 'Circular dependencies detected in target: ' + JSON.stringify(this._paths);
@@ -321,7 +322,7 @@ export class Target {
         this._computeExactDependencies(project._paths);
         // this._exactDependencies is set
         // build all dependencies recursively
-        this._buildDependencies(project,buildInfo);
+        this._buildDependencies(rollcall,project,buildInfo);
         // all dependencies and subdependencies are built
         let blobCopyList: string[][] = [];
         // [destinaitonPath,blobName]

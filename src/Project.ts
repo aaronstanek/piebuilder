@@ -5,8 +5,14 @@ import * as DependencyContext from './DependencyContext';
 import * as doTask from './doTask';
 import * as Source from './Source';
 import * as Target from './Target';
+import * as RollCall from './RollCall';
 
 type ProjectStatusType = 'prebuild' | 'active' | 'error';
+
+type ProjectBuildReturnType = {
+    'duration': number,
+    'files': RollCall.RollCallDictionary
+}
 
 export class Project {
     _status: ProjectStatusType;
@@ -86,7 +92,7 @@ export class Project {
         this._afterTasks.push(taskitem);
         return this;
     }
-    build(goalPath: any) {
+    build(goalPath: any): ProjectBuildReturnType {
         if (this._status === 'error') {
             throw 'Project.build may not be called after a build error has occured';
         }
@@ -109,13 +115,14 @@ export class Project {
             this._status = 'active';
         }
         let buildInfo: cache.BuildInfoType | null = null;
+        let rollcall = new RollCall.RollCall();
         try {
             buildInfo = cache.loadBuildInfo(this._cachePath);
             buildInfo.meta.build_count += 1;
             for (let i = 0; i < this._beforeTasks.length; ++i) {
                 doTask.doTask(this._beforeTasks[i]);
             }
-            obj._build(this,buildInfo);
+            obj._build(rollcall,this,buildInfo);
             cache.purgeOldRecipes(buildInfo.meta,buildInfo.previous);
             cache.purgeUnunsedBlobs(this._cachePath,cache.purgeOldRecipes(buildInfo.meta,buildInfo.recipes));
             cache.saveBuildInfo(this._cachePath,buildInfo);
@@ -136,6 +143,9 @@ export class Project {
             }
             throw e;
         }
-        return (new Date().getTime()) - startTime;
+        return {
+            'duration': (new Date().getTime()) - startTime,
+            'files': rollcall._paths
+        }
     }
 }
