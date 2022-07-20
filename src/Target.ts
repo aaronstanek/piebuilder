@@ -266,7 +266,7 @@ export class Target {
         }
         return hash.documentToHash(document);
     }
-    _hardBuild(project: Project.Project, buildInfo: cache.BuildInfoType): void {
+    _hardBuild(rollcall: RollCall.RollCall, project: Project.Project, buildInfo: cache.BuildInfoType): void {
         for (let i = 0; i < this._tasks.length; ++i) {
             doTask.doTask(this._tasks[i]);
         }
@@ -274,6 +274,7 @@ export class Target {
         // need to update previous and recipes
         for (let i = 0; i < this._paths.length; ++i) {
             let targetPath: string = this._paths[i];
+            rollcall.built(targetPath);
             if (virtualPath.pathIsVirtual(targetPath)) {
                 // this is a virtual file
                 // there is nothing on the hard drive
@@ -351,6 +352,7 @@ export class Target {
                                 // if the file is virtual then it cannot have changed since
                                 // the last build
                                 buildInfo.previous[targetPath][1] = buildInfo.meta.build_count;
+                                rollcall.same(targetPath);
                                 continue;
                             }
                             else {
@@ -362,6 +364,7 @@ export class Target {
                                 if (hash.fileToHash(targetPath) === targetHash) {
                                     // yep, all good
                                     buildInfo.previous[targetPath][1] = buildInfo.meta.build_count;
+                                    rollcall.same(targetPath);
                                     continue;
                                 }
                                 // the caution level was warranted
@@ -399,12 +402,13 @@ export class Target {
         }
         // we have identified the steps that we need to take in order to do the build
         if (hardBuildRequired) {
-            this._hardBuild(project,buildInfo);
+            this._hardBuild(rollcall,project,buildInfo);
         }
         else {
             for (let i = 0; i < blobCopyList.length; ++i) {
                 cache.copyFileFromCache(project._cachePath,blobCopyList[i][0],blobCopyList[i][1]);
                 buildInfo.previous[blobCopyList[i][0]] = [blobCopyList[i][1],buildInfo.meta.build_count];
+                rollcall.cached(blobCopyList[i][0]);
             }
         }
         this._buildHash = this._computeBuildHash(buildInfo.previous);
